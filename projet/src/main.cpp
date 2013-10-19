@@ -25,6 +25,10 @@
 #define JOY_CMD_SWITCH 0
 #define JOY_CMD_TAKEOFF 1
 #define JOY_CMD_LAND 2
+#define JOY_CMD_MOVE_FORWARD 3
+#define JOY_CMD_MOVE_RIGHT 4
+#define JOY_CMD_MOVE_UP 5
+#define JOY_CMD_TURN_RIGHT 6
 
 #define AUTO_CONTROL 0
 #define MANUAL_CONTROL 1
@@ -54,7 +58,7 @@ int typeControl = AUTO_CONTROL ;
 /* Callback for joystick commands treatment */
 void joyCallback ( const sensor_msgs::Joy::ConstPtr& joyMessage)
 {
-	int i = 0 ;
+	int i = 0, j = 0 ;
 	ros::NodeHandle n;
 	ros::Publisher takeoffTopic = n.advertise<std_msgs::Empty>("ardrone/takeoff", 1);
 	ros::Publisher landTopic = n.advertise<std_msgs::Empty>("ardrone/land", 1);
@@ -64,12 +68,13 @@ void joyCallback ( const sensor_msgs::Joy::ConstPtr& joyMessage)
 
 	if ( initJoy != ( JOY_INIT_SWITCH | JOY_INIT_TAKEOFF | JOY_INIT_LAND | JOY_INIT_MOVE_FORWARD | JOY_INIT_MOVE_RIGHT | JOY_INIT_MOVE_UP | JOY_INIT_TURN_RIGHT ) )
 	{
-		for ( i = 0 ; i < 30 && joyMessage->buttons[i] == 0 ; i++ ) { }			
+		for ( i = 0 ; i < 30 && joyMessage->buttons[i] == 0 ; i++ ) { }	
+		for ( j = 0 ; j < 30 && joyMessage->axes[j] == 0 ; j++ ) { }					
 
 		if ( ( initJoy & JOY_INIT_SWITCH ) != JOY_INIT_SWITCH && i != 30 && joyMessage->buttons[i] == 1 )
 		{
 			initJoy = initJoy | JOY_INIT_SWITCH ;
-			joyCmd[JOY_CMD_EMERGENCY] = i ;
+			joyCmd[JOY_CMD_SWITCH] = i ;
 			cout << "Button assigned for switching between auto control and manual control is set to button " << i << endl ;
 
 			cout << "Please press and hold button to take off (press any key when ready)"  ;  
@@ -89,18 +94,49 @@ void joyCallback ( const sensor_msgs::Joy::ConstPtr& joyMessage)
 			initJoy = initJoy | JOY_INIT_LAND ;
 			joyCmd[JOY_CMD_LAND] = i ;
 			cout << "Button assigned to land is set to button " << i << endl ;
+
+			cout << "Please put axe to max position to move forward (press any key when ready)"  ;  
+			cin.get() ; 
 		}
-		else if ( ( initJoy & JOY_INIT_MOVE_FORWARD ) != JOY_INIT_MOVE_FORWARD && i != 30 && joyMessage->axes[i] == 1 )
+		/* TODO : Store the values of axes when the user does not press anything to be able to compare with the configuration 
+		when something is pressed. Change the condition to difference between the two and find the axe which value has changed between
+		the two. Store the sign of the value (useful since if joystick is at his max position on the right and the value equals -1, 
+		it won't be consistent with the fact that to turn right, we have to put a positive value to angular z)
+		*/
+		else if ( ( initJoy & JOY_INIT_MOVE_FORWARD ) != JOY_INIT_MOVE_FORWARD && j != 30 && joyMessage->axes[j] == 1 )
 		{
 			initJoy = initJoy | JOY_INIT_MOVE_FORWARD ;
-			joyCmd[JOY_CMD_MOVE_FORWARD] = i ;
-			cout << "Axe assigned to move forward is set to axes " << i << endl ;
+			joyCmd[JOY_CMD_MOVE_FORWARD] = j ;
+			cout << "Axe assigned to move forward is set to axe " << j << endl ;
+
+			cout << "Please put axe to max position to move right (press any key when ready)"  ;  
+			cin.get() ; 
 		}
-		else if ( ( initJoy & JOY_INIT_MOVE_RIGHT ) != JOY_INIT_MOVE_RIGHT && i != 30 && joyMessage->buttons[i] == 1 )
+		else if ( ( initJoy & JOY_INIT_MOVE_RIGHT ) != JOY_INIT_MOVE_RIGHT && j != 30 && joyMessage->axes[j] == 1 )
 		{
 			initJoy = initJoy | JOY_INIT_MOVE_RIGHT ;
-			joyCmd[JOY_CMD_MOVE_RIGHT] = i ;
-			cout << "Button assigned to land is set to button " << i << endl ;
+			joyCmd[JOY_CMD_MOVE_RIGHT] = j ;
+			cout << "Axe assigned to move right is set to axe " << j << endl ;
+
+			cout << "Please put axe to max position to move up (press any key when ready)"  ;  
+			cin.get() ; 
+		}		
+		else if ( ( initJoy & JOY_INIT_MOVE_UP ) != JOY_INIT_MOVE_UP && i != 30 && joyMessage->axes[j] == 1 )
+		{
+			initJoy = initJoy | JOY_INIT_MOVE_UP ;
+			joyCmd[JOY_CMD_MOVE_UP] = j ;
+			cout << "Axe assigned to move up is set to axe " << j << endl ;
+
+			cout << "Please put axe to max position to turn right (press any key when ready)"  ;  
+			cin.get() ; 
+		}
+		else if ( ( initJoy & JOY_INIT_TURN_RIGHT ) != JOY_INIT_TURN_RIGHT && j != 30 && joyMessage->axes[j] == 1 )
+		{
+			initJoy = initJoy | JOY_INIT_TURN_RIGHT ;
+			joyCmd[JOY_CMD_TURN_RIGHT] = j ;
+			cout << "Axe assigned to turn right is set to axe " << j << endl ;
+
+			cout << "Configuration of joystick complete." << endl  ;  
 		}
 	}
 	else
@@ -120,11 +156,20 @@ void joyCallback ( const sensor_msgs::Joy::ConstPtr& joyMessage)
 			}
 			else if ( joyMessage->buttons[joyCmd[JOY_CMD_TAKEOFF]] == 1 )
 			{
-				takeoff.publish(emptyMsg) ;		
+				takeoffTopic.publish(emptyMsg) ;		
 			}
 			else
 			{
-				
+				/* TODO : set the cmd var with correct values, considering the following description for the drone :
+				-linear.x: move backward
+				+linear.x: move forward
+				-linear.y: move right
+				+linear.y: move left
+				-linear.z: move down
+				+linear.z: move up
+
+				-angular.z: turn left
+				+angular.z: turn right */	
 			}
 		}
 	}	

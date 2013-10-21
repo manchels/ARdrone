@@ -1,0 +1,8 @@
+opencv2:
+  ubuntu:
+    lucid:
+      apt:
+        packages: [ros-fuerte-opencv2]
+    oneiric:
+      apt:
+        packages: [ros-fuerte-opencv2]

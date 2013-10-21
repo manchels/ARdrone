@@ -1,2 +1,5 @@
 *~
-projet/build/*
+*/build/*
+*/bin/*
+*/lib/*
+build/*

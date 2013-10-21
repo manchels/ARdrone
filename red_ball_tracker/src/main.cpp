@@ -165,7 +165,6 @@ int main(int argc, char **argv)
 	createTrackbar("H min", WINDOW_C, &H_min, 255 ) ;
 	createTrackbar("H max", WINDOW_C, &H_max, 255 ) ;
 
-
 	image_transport::Subscriber subImage = it.subscribe("/ardrone/image_raw", 1, imageCallback);
 	destroyAllWindows();
 	ros::spin();

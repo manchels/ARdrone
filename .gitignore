@@ -1,9 +1,10 @@
+CMakeLists.txt.user
+__init__.py
+__init__.pyc
 *~
+build/*
 */build/*
 */bin/*
 */lib/*
-build/*
 */msg_gen/*
 */src/*/msg/*
-__init__.py
-__init__.pyc

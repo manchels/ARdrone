@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!--
+    Launch the red_ball_tracker on the test_red_ball.bag file.
+  -->
+  <arg name="bag_path" default="$(find ardrone_bags)/rosbag/" />
+  <arg name="bag_file" default="test_red_ball.bag" />
+
+  <node
+    pkg="red_ball_tracker"
+    type="red_ball_tracker"
+    name="red_ball_tracker"
+    required="true"
+    output="screen"
+  />
+  <node
+    pkg="rosbag"
+    type="play"
+    name="player"
+    output="screen"
+    args="--clock $(arg bag_path)$(arg bag_file)"
+  />
+
+</launch>

@@ -3,3 +3,6 @@
 */bin/*
 */lib/*
 build/*
+*/msg_gen/*
+*/src/*/msg/*
+__init__.py

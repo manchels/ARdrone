@@ -13,8 +13,6 @@
 #define SATURATION_CHANNEL 2
 #define LIGHTNESS_CHANNEL 1
 
-
-
 namespace enc = sensor_msgs::image_encodings;
 using namespace std;
 using namespace cv ;

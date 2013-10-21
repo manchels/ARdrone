@@ -35,11 +35,13 @@ int S_max = 255 ;
 int L_min = 0 ;
 int L_max = 255 ;
 
+float prevDist = -1 ;
+
 /* Callback for image treatment */
 void imageCallback ( const sensor_msgs::ImageConstPtr& original_image )
 {
 	ros::NodeHandle n;
-	ros::Publisher trackerTopic = n.advertise<red_ball_tracker::TrackerMsg>("red_ball_tracker/tracking", 1);	
+	ros::Publisher trackerTopic = n.advertise<red_ball_tracker::TrackerMsg>("red_ball_tracker/tracking", 100);	
   red_ball_tracker::TrackerMsg teleopMsg ;	
 
 	/* Initialisation of the two images : source and destination (image processed) */
@@ -57,6 +59,9 @@ void imageCallback ( const sensor_msgs::ImageConstPtr& original_image )
 
 	Point2f center ;
 	float radius ;
+	float dist = 1000 ; 
+	float diff = 1000 ;
+	bool ballFound = false ;
 
 	try
 	{
@@ -91,17 +96,46 @@ void imageCallback ( const sensor_msgs::ImageConstPtr& original_image )
   	findContours( imageFiltered, contours, contoursHierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
 
 	cout << "New image" << endl ;
+	
 	for ( iteratorContours = contours.begin() ; iteratorContours != contours.end() ; iteratorContours++)
 	{	
+		ballFound = true ;
+		
 		minEnclosingCircle ( *iteratorContours, center, radius ) ;
 		cout << center << endl << radius << endl << endl ;
 
-    teleopMsg.distance = RBALLE / ( tan ( radius * PX2RAD ) ) ;
-    teleopMsg.alphax = PX2RAD * ( center.x - 320 ) ;
-    teleopMsg.alphay = PX2RAD * ( - center.y + 240 ) ;
-
-    trackerTopic.publish(teleopMsg) ;		
+    if ( prevDist == -1 )
+    {
+      if ( dist > abs ( RBALLE / ( tan ( radius * PX2RAD ) ) ) )
+      {
+        dist = abs ( RBALLE / ( tan ( radius * PX2RAD ) ) ) ;
+        
+        teleopMsg.distance = RBALLE / ( tan ( radius * PX2RAD ) ) ;
+        teleopMsg.alphax = PX2RAD * ( center.x - 320 ) ;
+        teleopMsg.alphay = PX2RAD * ( - center.y + 240 ) ;
+      }   
+    }
+    else
+    {
+      if ( abs ( prevDist - RBALLE / ( tan ( radius * PX2RAD ) ) ) < diff )
+      {
+        diff = abs ( prevDist - RBALLE / ( tan ( radius * PX2RAD ) ) ) ;
+        
+        teleopMsg.distance = RBALLE / ( tan ( radius * PX2RAD ) ) ;
+        teleopMsg.alphax = PX2RAD * ( center.x - 320 ) ;
+        teleopMsg.alphay = PX2RAD * ( - center.y + 240 ) ;
+      } 
+    }
 	}
+	
+	prevDist = teleopMsg.distance ;
+
+   if ( ballFound )
+   {
+      cout << teleopMsg << endl ;
+      trackerTopic.publish(teleopMsg) ;	
+      ros::spinOnce();
+   }	
 
 	/* Result display */
 	imshow(WINDOW_H, hlsChannels[HUE_CHANNEL]);

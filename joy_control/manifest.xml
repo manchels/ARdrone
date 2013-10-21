@@ -1,14 +1,16 @@
 <package>
   <description brief="joy_control">
-
-     joy_control
-
+    Transform the joystick input in Teleop readable msg.
   </description>
-  <author>hvedrung</author>
+  <author>
+    Laurent Louf
+    Simon Manchel
+    Franck Duriez
+  </author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/joy_control</url>
-
+  <depend package="joy"/>
+  <depend package="rospy"/>
 </package>
 
 

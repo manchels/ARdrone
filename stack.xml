@@ -9,8 +9,8 @@
   </author>
   <license>BSD</license>
   <review status="reviewed" notes=""/>
-  <depend stack="common_msgs" /> <!-- sensor_msgs -->
-  <depend stack="geometry" />    <!-- tf, tf_conversions -->
-  <depend stack="ros" />
-  <depend stack="ros_comm" />    <!-- rostest, rospy, roscpp, message_filters -->
+  <depend stack="common_msgs"/> <!-- sensor_msgs -->
+  <depend stack="geometry"/>    <!-- tf, tf_conversions -->
+  <depend stack="ros"/>
+  <depend stack="ros_comm"/>    <!-- rostest, rospy, roscpp, message_filters -->
 </stack>

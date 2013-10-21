@@ -1,13 +1,16 @@
 <package>
   <description brief="projet">
-
-     projet
-
+    Track a red ball.
+    Return the angles between the camera center and the ball
+    on X and Y axis, and the distance to the ball.
   </description>
-  <author>Simon</author>
+  <author>
+    Laurent Louf
+    Simon Manchel
+    Franck Duriez
+  </author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/projet</url>
   <depend package="image_transport"/>
   <depend package="roscpp"/>
   <depend package="std_msgs"/>

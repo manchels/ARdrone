@@ -1,14 +1,17 @@
 <package>
   <description brief="teleop">
-
-     teleop
-
+    ARDrone control loop.
   </description>
-  <author>hvedrung</author>
+  <author>
+    Laurent Louf
+    Simon Manchel
+    Franck Duriez
+  </author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/teleop</url>
-
+  <depend package="joy_control"/>
+  <depend package="red_ball_tracker"/>
+  <depend package="roscpp"/>
 </package>
 
 

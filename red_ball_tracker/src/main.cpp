@@ -4,9 +4,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <sensor_msgs/Joy.h>
 #include <geometry_msgs/Twist.h>
-#include <std_msgs/Empty.h>
 
 #include <iostream>
 #include <iomanip>
@@ -15,23 +13,7 @@
 #define SATURATION_CHANNEL 2
 #define LIGHTNESS_CHANNEL 1
 
-#define JOY_INIT_SWITCH 1
-#define JOY_INIT_TAKEOFF 2
-#define JOY_INIT_LAND 4
-#define JOY_INIT_MOVE_FORWARD 8
-#define JOY_INIT_MOVE_RIGHT 16
-#define JOY_INIT_MOVE_UP 32
-#define JOY_INIT_TURN_RIGHT 64
-#define JOY_CMD_SWITCH 0
-#define JOY_CMD_TAKEOFF 1
-#define JOY_CMD_LAND 2
-#define JOY_CMD_MOVE_FORWARD 3
-#define JOY_CMD_MOVE_RIGHT 4
-#define JOY_CMD_MOVE_UP 5
-#define JOY_CMD_TURN_RIGHT 6
 
-#define AUTO_CONTROL 0
-#define MANUAL_CONTROL 1
 
 namespace enc = sensor_msgs::image_encodings;
 using namespace std;
@@ -50,130 +32,6 @@ int S_min = 233 ;
 int S_max = 255 ;
 int L_min = 0 ;
 int L_max = 255 ;
-
-int initJoy = 0 ;
-int joyCmd[10] ;
-int typeControl = AUTO_CONTROL ;
-
-/* Callback for joystick commands treatment */
-void joyCallback ( const sensor_msgs::Joy::ConstPtr& joyMessage)
-{
-	int i = 0, j = 0 ;
-	ros::NodeHandle n;
-	ros::Publisher takeoffTopic = n.advertise<std_msgs::Empty>("ardrone/takeoff", 1);
-	ros::Publisher landTopic = n.advertise<std_msgs::Empty>("ardrone/land", 1);
-	ros::Publisher emergencyTopic = n.advertise<std_msgs::Empty>("ardrone/reset", 1);
-	std_msgs::Empty emptyMsg;
-	geometry_msgs::Twist cmd ;
-
-	if ( initJoy != ( JOY_INIT_SWITCH | JOY_INIT_TAKEOFF | JOY_INIT_LAND | JOY_INIT_MOVE_FORWARD | JOY_INIT_MOVE_RIGHT | JOY_INIT_MOVE_UP | JOY_INIT_TURN_RIGHT ) )
-	{
-		for ( i = 0 ; i < 30 && joyMessage->buttons[i] == 0 ; i++ ) { }	
-		for ( j = 0 ; j < 30 && joyMessage->axes[j] == 0 ; j++ ) { }					
-
-		if ( ( initJoy & JOY_INIT_SWITCH ) != JOY_INIT_SWITCH && i != 30 && joyMessage->buttons[i] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_SWITCH ;
-			joyCmd[JOY_CMD_SWITCH] = i ;
-			cout << "Button assigned for switching between auto control and manual control is set to button " << i << endl ;
-
-			cout << "Please press and hold button to take off (press any key when ready)"  ;  
-			cin.get() ; 
-		}
-		else if ( ( initJoy & JOY_INIT_TAKEOFF ) != JOY_INIT_TAKEOFF && i != 30 && joyMessage->buttons[i] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_TAKEOFF ;
-			joyCmd[JOY_CMD_TAKEOFF] = i ;			
-			cout << "Button assigned to take off is set to button " << i << endl ;
-
-			cout << "Please press and hold button to land (press any key when ready)"  ;  
-			cin.get() ; 
-		}
-		else if ( ( initJoy & JOY_INIT_LAND ) != JOY_INIT_LAND && i != 30 && joyMessage->buttons[i] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_LAND ;
-			joyCmd[JOY_CMD_LAND] = i ;
-			cout << "Button assigned to land is set to button " << i << endl ;
-
-			cout << "Please put axe to max position to move forward (press any key when ready)"  ;  
-			cin.get() ; 
-		}
-		/* TODO : Store the values of axes when the user does not press anything to be able to compare with the configuration 
-		when something is pressed. Change the condition to difference between the two and find the axe which value has changed between
-		the two. Store the sign of the value (useful since if joystick is at his max position on the right and the value equals -1, 
-		it won't be consistent with the fact that to turn right, we have to put a positive value to angular z)
-		*/
-		else if ( ( initJoy & JOY_INIT_MOVE_FORWARD ) != JOY_INIT_MOVE_FORWARD && j != 30 && joyMessage->axes[j] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_MOVE_FORWARD ;
-			joyCmd[JOY_CMD_MOVE_FORWARD] = j ;
-			cout << "Axe assigned to move forward is set to axe " << j << endl ;
-
-			cout << "Please put axe to max position to move right (press any key when ready)"  ;  
-			cin.get() ; 
-		}
-		else if ( ( initJoy & JOY_INIT_MOVE_RIGHT ) != JOY_INIT_MOVE_RIGHT && j != 30 && joyMessage->axes[j] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_MOVE_RIGHT ;
-			joyCmd[JOY_CMD_MOVE_RIGHT] = j ;
-			cout << "Axe assigned to move right is set to axe " << j << endl ;
-
-			cout << "Please put axe to max position to move up (press any key when ready)"  ;  
-			cin.get() ; 
-		}		
-		else if ( ( initJoy & JOY_INIT_MOVE_UP ) != JOY_INIT_MOVE_UP && i != 30 && joyMessage->axes[j] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_MOVE_UP ;
-			joyCmd[JOY_CMD_MOVE_UP] = j ;
-			cout << "Axe assigned to move up is set to axe " << j << endl ;
-
-			cout << "Please put axe to max position to turn right (press any key when ready)"  ;  
-			cin.get() ; 
-		}
-		else if ( ( initJoy & JOY_INIT_TURN_RIGHT ) != JOY_INIT_TURN_RIGHT && j != 30 && joyMessage->axes[j] == 1 )
-		{
-			initJoy = initJoy | JOY_INIT_TURN_RIGHT ;
-			joyCmd[JOY_CMD_TURN_RIGHT] = j ;
-			cout << "Axe assigned to turn right is set to axe " << j << endl ;
-
-			cout << "Configuration of joystick complete." << endl  ;  
-		}
-	}
-	else
-	{
-		if ( joyMessage->buttons[joyCmd[JOY_CMD_SWITCH]] == 1 )
-		{
-			if ( typeControl == AUTO_CONTROL )
-				typeControl = MANUAL_CONTROL ;
-			else
-			 	typeControl = AUTO_CONTROL ;			
-		}
-		else if ( typeControl == MANUAL_CONTROL )
-		{
-			if ( joyMessage->buttons[joyCmd[JOY_CMD_LAND]] == 1 )			
-			{
-				landTopic.publish(emptyMsg) ;		
-			}
-			else if ( joyMessage->buttons[joyCmd[JOY_CMD_TAKEOFF]] == 1 )
-			{
-				takeoffTopic.publish(emptyMsg) ;		
-			}
-			else
-			{
-				/* TODO : set the cmd var with correct values, considering the following description for the drone :
-				-linear.x: move backward
-				+linear.x: move forward
-				-linear.y: move right
-				+linear.y: move left
-				-linear.z: move down
-				+linear.z: move up
-
-				-angular.z: turn left
-				+angular.z: turn right */	
-			}
-		}
-	}	
-}
 
 /* Callback for image treatment */
 void imageCallback ( const sensor_msgs::ImageConstPtr& original_image)
@@ -202,12 +60,12 @@ void imageCallback ( const sensor_msgs::ImageConstPtr& original_image)
 	}
 	catch (cv_bridge::Exception& e)
 	{
-		ROS_ERROR("tutorialROSOpenCV::main.cpp::cv_bridge exception: %s", e.what());
+		ROS_ERROR("Exception trying to copy image : %s", e.what());
 		return;
 	}
 
 
-	/* OpenCV algorithm for ball detection  */
+	/* Conversion BGR to HLS  */
 	cvtColor ( cv_ptr->image, cv_chg->image, CV_BGR2HLS ) ;
 
 	/* Application of thresholds */
@@ -249,7 +107,7 @@ void imageCallback ( const sensor_msgs::ImageConstPtr& original_image)
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, "process_images");
+	ros::init(argc, argv, "red_ball_tracker");
 	ros::NodeHandle nh;
 	image_transport::ImageTransport it(nh);
 
@@ -264,14 +122,9 @@ int main(int argc, char **argv)
 
 
 	image_transport::Subscriber subImage = it.subscribe("/ardrone/image_raw", 1, imageCallback);
-	cout << "Please press and hold button to switch between auto control and manual control mode (press anykey when ready)"  ;   
-	cin.get() ; 
-	ros::Subscriber subJoy = nh.subscribe<sensor_msgs::Joy>("/joy", 1, joyCallback);
-
 	destroyAllWindows();
-
 	ros::spin();
 
-	ROS_INFO("tutorialROSOpenCV::main.cpp::No error.");
+	ROS_INFO("Program ended correctly");
 }
 

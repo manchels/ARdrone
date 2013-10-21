@@ -5,13 +5,17 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <geometry_msgs/Twist.h>
+#include <red_ball_tracker/TrackerMsg.h>
 
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 
 #define HUE_CHANNEL 0
 #define SATURATION_CHANNEL 2
 #define LIGHTNESS_CHANNEL 1
+#define PX2RAD 0.002
+#define RBALLE 0.035
 
 namespace enc = sensor_msgs::image_encodings;
 using namespace std;
@@ -32,9 +36,12 @@ int L_min = 0 ;
 int L_max = 255 ;
 
 /* Callback for image treatment */
-void imageCallback ( const sensor_msgs::ImageConstPtr& original_image)
+void imageCallback ( const sensor_msgs::ImageConstPtr& original_image )
 {
-	
+	ros::NodeHandle n;
+	ros::Publisher trackerTopic = n.advertise<red_ball_tracker::TrackerMsg>("red_ball_tracker/tracking", 1);	
+  red_ball_tracker::TrackerMsg teleopMsg ;	
+
 	/* Initialisation of the two images : source and destination (image processed) */
 	cv_bridge::CvImagePtr cv_ptr;
 	cv_bridge::CvImagePtr cv_chg;
@@ -88,6 +95,12 @@ void imageCallback ( const sensor_msgs::ImageConstPtr& original_image)
 	{	
 		minEnclosingCircle ( *iteratorContours, center, radius ) ;
 		cout << center << endl << radius << endl << endl ;
+
+    teleopMsg.distance = RBALLE / ( tan ( radius * PX2RAD ) ) ;
+    teleopMsg.alphax = PX2RAD * ( center.x - 320 ) ;
+    teleopMsg.alphay = PX2RAD * ( - center.y + 240 ) ;
+
+    trackerTopic.publish(teleopMsg) ;		
 	}
 
 	/* Result display */

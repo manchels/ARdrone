@@ -1,0 +1,14 @@
+<package>
+  <description brief="joy_control">
+
+     joy_control
+
+  </description>
+  <author>hvedrung</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/joy_control</url>
+
+</package>
+
+

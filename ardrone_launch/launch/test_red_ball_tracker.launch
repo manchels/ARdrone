@@ -7,6 +7,18 @@
   <arg name="bag_path" default="$(find ardrone_bags)/rosbag/" />
   <arg name="bag_file" default="test_red_ball.bag" />
 
+  <env
+    name="ROSCONSOLE_CONFIG_FILE"
+    value="$(find ardrone_launch)/conf/console.conf"
+  />
+
+  <node
+    pkg="rxtools"
+    type="rxconsole"
+    name="published_topics"
+    output="screen"
+    args=""
+  />
   <node
     pkg="red_ball_tracker"
     type="red_ball_tracker"

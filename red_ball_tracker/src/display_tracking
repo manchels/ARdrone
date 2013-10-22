@@ -1,0 +1,32 @@
+#!/usr/bin/python2
+
+# Dummy node which subscribe to the display_tracking topic of red_ball_tracker.
+# This tell the red_ball_tracker node to display the processed images. (for debug)
+
+import sys
+import os
+import roslib; roslib.load_manifest('red_ball_tracker')
+import rospy
+import std_msgs
+import std_msgs.msg
+
+
+class DisplayTracking:
+  def __init__(self):
+    self.topic = sys.argv[1] if len(sys.argv) > 1 else "ardrone/image_raw/display_tracking"
+    rospy.loginfo("Subscribe %s", self.topic)
+    self.subscriber = rospy.Subscriber(self.topic, std_msgs.msg.Empty, self.command)
+
+  def command(self, msg):
+    return
+
+def main():
+  rospy.init_node('display_tracking', anonymous=True)
+  display = DisplayTracking()
+  rospy.loginfo("Use Ctrl+C to stop.")
+  rospy.spin()
+  rospy.loginfo("bye!\n")
+  return 0
+
+if __name__ == "__main__": main()
+

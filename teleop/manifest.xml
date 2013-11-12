@@ -11,6 +11,7 @@
   <review status="unreviewed" notes=""/>
   <depend package="joy_control"/>
   <depend package="red_ball_tracker"/>
+  <depend package="ardrone_autonomy"/>
   <depend package="roscpp"/>
 </package>
 

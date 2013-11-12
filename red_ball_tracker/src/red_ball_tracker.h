@@ -54,6 +54,7 @@ private:
   float _prev_distance;
 
   cv::Mat _image_tmp;
+  cv::Point2f _image_center;
   cv_bridge::CvImagePtr _image_origin;
   cv_bridge::CvImagePtr _image_filtered;
 };

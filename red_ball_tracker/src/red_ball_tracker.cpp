@@ -30,7 +30,7 @@ red_ball_tracker::red_ball_tracker(void)
   : _private_node(ros::NodeHandle(std::string("~")))
   , _image_transport(_public_node)
   , _need_display_img(false)
-  , _is_init(true)
+  , _is_init(false)
   , _prev_distance(-1.f)
 {
   ROS_INFO("Create red_ball_tracker object.");
@@ -106,6 +106,12 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
   float diff = 1000;
   bool ballFound = false;
 
+  if (!_is_init)
+  {
+    _image_center.y = img->height/2;
+    _image_center.x = img->width/2;
+  }
+
   try
   {
     _image_origin =
@@ -152,17 +158,17 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
 
     cv::minEnclosingCircle(*iteratorContours, center, radius);
 
-    if (_is_init)
+    if (!_is_init)
     {
       if (dist > std::abs(_ball_radius / (std::tan(radius * _pixel_to_rad))))
       {
         dist = std::abs(_ball_radius / (std::tan(radius * _pixel_to_rad)));
 
         teleopMsg.distance = _ball_radius / (std::tan(radius * _pixel_to_rad));
-        teleopMsg.alphax = _pixel_to_rad * (center.x - 320);
-        teleopMsg.alphay = _pixel_to_rad * (-center.y + 240);
+        teleopMsg.alphax = _pixel_to_rad * (center.x - _image_center.x);
+        teleopMsg.alphay = _pixel_to_rad * (_image_center.y - center.y);
       }
-      _is_init = false;
+      _is_init = true;
     }
     else
     {
@@ -174,18 +180,24 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
               (std::tan(radius * _pixel_to_rad)));
 
         teleopMsg.distance = _ball_radius / (std::tan(radius * _pixel_to_rad));
-        teleopMsg.alphax = _pixel_to_rad * (center.x - 320);
-        teleopMsg.alphay = _pixel_to_rad * (-center.y + 240);
+        teleopMsg.alphax = _pixel_to_rad * (center.x - _image_center.x);
+        teleopMsg.alphay = _pixel_to_rad * (_image_center.y - center.y);
       }
     }
   }
 
   _prev_distance = teleopMsg.distance;
 
-  if (ballFound) _tracking_publisher.publish(teleopMsg);
+  if (ballFound)
+  {
+    _tracking_publisher.publish(teleopMsg);
 
-  ROS_DEBUG("Teleop msg: [%f, %f, %f]",
-            teleopMsg.alphax, teleopMsg.alphay, teleopMsg.distance);
+    ROS_DEBUG("CtrX,CtrY,Rad: [%10.5f, %10.5f, %10.5f]",
+              center.x, center.y, radius);
+    ROS_DEBUG("Image:         [%f,%f]", _image_center.x, _image_center.y);
+    ROS_DEBUG("Teleop msg:    [%10.5f, %10.5f, %10.5f]",
+              teleopMsg.alphax, teleopMsg.alphay, teleopMsg.distance);
+  }
 }
 
 

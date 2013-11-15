@@ -1,11 +1,16 @@
 #include "teleop.h"
+#include <cassert>
 
+#define STRINGIZE(args...) __STRING(args)
 
-// Static const members definitions.
-namespace teleop {
-
-
-} // rbt
+#define START            buttons[0]
+#define TOGGLE_CONTROL   buttons[1]
+#define TOGGLE_FLYING    buttons[2]
+#define TOGGLE_EMERGENCY buttons[3]
+#define LATERAL          axes[0]
+#define FORWARD          axes[1]
+#define YAW              axes[2]
+#define ALTITUDE         axes[3]
 
 
 // Methods definitions.
@@ -24,7 +29,12 @@ teleop::teleop(void)
   , _toggle_emergency(false)
   , _last_toggle_emergency(false)
   , _scale(1.f)
-  , _coeff(0.1f, 0.1f, 0.1f)
+  , _x_prev(0.f)
+  , _x_p(0.f), _x_i(0.f), _x_d(0.f)
+  , _rate_ms(50)
+  // Coefficient found by Ziegler-Nichols method.
+  , _coeff(.3f, 1.f, 0.25f,
+            10.f, 10.f)
 {
   ROS_INFO("Create teleop object.");
 
@@ -49,7 +59,8 @@ teleop::teleop(void)
              _ardrone_velocity_topic_name.c_str());
 
     _private_node.param(
-          "navigation", _ardrone_velocity_topic_name, std::string("ardron"));
+          "navigation", _ardrone_navigation_topic_name,
+          std::string("ardrone/navdata"));
     ROS_INFO("Ardrone navigation topic : %s",
              _ardrone_navigation_topic_name.c_str());
 
@@ -75,10 +86,10 @@ teleop::teleop(void)
           _joy_command_topic_name, 1,
           boost::bind(&teleop::joy_command_callback, this, _1));
 
-    _ardrone_navigation_subscriber =
-        _public_node.subscribe<ardrone_autonomy::Navdata>(
-          _ardrone_navigation_topic_name, 1,
-          boost::bind(&teleop::navigation_callback, this, _1));
+//    _ardrone_navigation_subscriber =
+//        _public_node.subscribe<ardrone_autonomy::Navdata>(
+//          _ardrone_navigation_topic_name, 1,
+//          boost::bind(&teleop::navigation_callback, this, _1));
   }
 
   // Publishers.
@@ -99,27 +110,46 @@ teleop::teleop(void)
         _public_node.advertise<geometry_msgs::Twist>(
           _ardrone_velocity_topic_name, 10);
   }
+
+  ROS_INFO(
+        "Joystick commands are:\n"
+        "\tStart:            " STRINGIZE(START           ) "\n"
+        "\tToggle control:   " STRINGIZE(TOGGLE_CONTROL  ) "\n"
+        "\tToggle emergency: " STRINGIZE(TOGGLE_EMERGENCY) "\n"
+        "\tToggle flying:    " STRINGIZE(TOGGLE_EMERGENCY) "\n"
+        "\tLateral axe:      " STRINGIZE(LATERAL         ) "\n"
+        "\tForward axe:      " STRINGIZE(FORWARD         ) "\n"
+        "\tYaw axe:          " STRINGIZE(YAW             ) "\n"
+        "\tAltitude axe:     " STRINGIZE(ALTITUDE        ) "\n");
 }
 
 
 teleop::~teleop(void)
-{
-  ROS_INFO("Destroy teleop object.");
-}
+{ ROS_INFO("Destroy teleop object."); }
 
 
 void teleop::spin_once(void)
 {
   // Stabilize when not controlled.
   {
-    _control.angular.x *= 0.9f;
-    _control.angular.y *= 0.9f;
-    _control.angular.z *= 0.9f;
+    _control.angular.x *= 0.5f;
+    _control.angular.y *= 0.5f;
+    _control.angular.z *= 0.5f;
 
-    _control.linear.x *= 0.9f;
-    _control.linear.y *= 0.9f;
-    _control.linear.z *= 0.9f;
+    _control.linear.x *= 0.5f;
+    _control.linear.y *= 0.5f;
+    _control.linear.z *= 0.5f;
   }
+
+  // Update values.
+  {
+    _x_i += (_control.linear.x - _x_prev) * _rate_ms / 1000.f;
+    _x_d  = 1000.f * (_control.linear.x - _x_prev) / _rate_ms;
+
+    _x_prev = _control.linear.x;
+  }
+
+  publish_velocity();
 }
 
 
@@ -127,7 +157,7 @@ void teleop::spin(void)
 {
   while (ros::ok())
   {
-    ros::Rate rate(50);
+    ros::Rate rate(_rate_ms);
     spin_once();
     ros::spinOnce();
     rate.sleep();
@@ -143,13 +173,19 @@ void teleop::ball_position_callback(
   {
     if (_is_flying)
     {
+      _x_p = 3.f - position->distance;
+      _control.linear.x =
+          -(_coeff.dist_x_p * _x_p +
+            _coeff.dist_x_i * _x_i/* +
+            _coeff.dist_x_d * _x_d*/);
+      _control.linear.y = 0;
+      _control.linear.z = 0; //-_coeff.dist_z * position->alphay;
+
       _control.angular.x = 0;
       _control.angular.y = 0;
-      _control.angular.z = _coeff.theta_z * position->alphax;
+      _control.angular.z = -(_coeff.theta_z * position->alphax);
 
-      _control.linear.x = _coeff.dist_x * (position->distance - 1.5f);
-      _control.linear.y = 0;
-      _control.linear.z = _coeff.dist_z * position->alphay;
+      ROS_INFO("[ %10.5f, %10.5f, %10.5f ]", _x_p, _x_i, _x_d);
     }
     else
     {
@@ -163,16 +199,26 @@ void teleop::ball_position_callback(
 
 void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
 {
-  if (joy->buttons[0]) _start = true;
+  if (joy->START && !_start)
+  {
+    ROS_INFO("Starting.");
+    _start = true;
+  }
 
-  if (joy->buttons[1] && !_last_toggle_control)
+  if (joy->TOGGLE_CONTROL && !_last_toggle_control)
+  {
     _controlled_by_joy = !_controlled_by_joy;
-  _last_toggle_control = joy->buttons[1];
+    ROS_INFO("Set control: %s.",
+             (_controlled_by_joy)
+             ? "Joystick"
+             : "Autonomous");
+  }
+  _last_toggle_control = joy->TOGGLE_CONTROL;
 
   // Emergency state.
   {
     _last_toggle_emergency = _toggle_emergency;
-    _toggle_emergency = joy->buttons[3];
+    _toggle_emergency = joy->TOGGLE_EMERGENCY;
 
     if (_toggle_emergency && !_last_toggle_emergency)
     {
@@ -184,45 +230,43 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
   // Joy controlled mode description.
   if (_start && _controlled_by_joy)
   {
-    _control.linear.x  = _scale * joy->axes[1]; // forward, backward
-    _control.linear.y  = _scale * joy->axes[0]; // left, right
-    _control.linear.z  = _scale * joy->axes[3]; // up, down
-    _control.angular.z = _scale * joy->axes[2]; // yaw
+    _control.linear.x  = _scale * joy->FORWARD;  // forward, backward
+    _control.linear.y  = _scale * joy->LATERAL;  // left, right
+    _control.linear.z  = _scale * joy->ALTITUDE; // up, down
+    _control.angular.z = _scale * joy->YAW;      // yaw
 
     // Flying state.
     {
       _last_toggle_flying = _toggle_flying;
-      _toggle_flying = joy->buttons[2];
+      _toggle_flying = joy->TOGGLE_FLYING;
 
-      if (!_is_flying && _toggle_flying && !_last_toggle_flying)
+      if (_toggle_flying && !_last_toggle_flying)
       {
-        ROS_INFO("Taking off!");
-        _ardrone_takeoff_publisher.publish(std_msgs::Empty());
-        _is_flying = true;
+        if (!_is_flying)
+        {
+          ROS_INFO("Taking off!");
+          _ardrone_takeoff_publisher.publish(std_msgs::Empty());
+          _is_flying = true;
+        }
+        else
+        {
+          ROS_INFO("Landing.");
+          _ardrone_land_publisher.publish(std_msgs::Empty());
+          _is_flying = false;
+        }
       }
 
-      if (_is_flying && _toggle_flying && !_last_toggle_flying)
-      {
-        ROS_INFO("Landing.");
-        _ardrone_land_publisher.publish(std_msgs::Empty());
-        _is_flying = false;
-      }
     }
-
-    publish_velocity();
   }
 }
 
 
 void teleop::navigation_callback(ardrone_autonomy::Navdata::ConstPtr navdata)
-{
-  _altitude_mm = navdata->altd;
-}
+{ _altitude_mm = navdata->altd; }
 
 
-void teleop::publish_velocity()
-{
-}
+void teleop::publish_velocity(void)
+{ _ardrone_velocity_publisher.publish(_control); }
 
 
-} // rbt
+} // teleop

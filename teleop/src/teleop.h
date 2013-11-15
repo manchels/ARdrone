@@ -58,14 +58,24 @@ private:
   bool _toggle_emergency, _last_toggle_emergency;
   bool _activate, _last_activate;
   float _scale;
+
   geometry_msgs::Twist _control;
+  float _x_prev;
+  float _x_p, _x_i, _x_d;
+  int _rate_ms;
 
   struct p_corrector
   {
-    p_corrector(float dx, float dz, float tz)
-      : dist_x(dx), dist_z(dz), theta_z(tz) {}
+    p_corrector(
+        float dxp, float dxi, float dxd,
+        float dz,
+        float tz)
+      : dist_x_p(dxp), dist_x_i(dxp), dist_x_d(dxp)
+      , dist_z(dz), theta_z(tz) {}
 
-    float dist_x, dist_z, theta_z;
+    float
+    dist_x_p, dist_x_i, dist_x_d,
+    dist_z, theta_z;
   }
   _coeff;
 };

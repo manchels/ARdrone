@@ -1,5 +1,8 @@
 #include "red_ball_tracker.h"
 
+#include <initializer_list>
+
+#define LOW_PASS_FILTER std::vector<float>(16, 1.f/16)
 
 // Static const members definitions.
 namespace rbt {
@@ -13,6 +16,7 @@ std::string const red_ball_tracker::_hue_window = "hue channel";
 std::string const red_ball_tracker::_lightness_window = "lightness channel";
 std::string const red_ball_tracker::_saturation_window = "saturation channel";
 std::string const red_ball_tracker::_filtered_window = "filtered image";
+std::string const red_ball_tracker::_contour_window = "contour image";
 cv::Mat const red_ball_tracker::_erode_element =
     cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
 cv::Mat const red_ball_tracker::_dilate_element =
@@ -31,7 +35,11 @@ red_ball_tracker::red_ball_tracker(void)
   , _image_transport(_public_node)
   , _need_display_img(false)
   , _is_init(false)
-  , _prev_distance(-1.f)
+  , _idle_counter(0)
+  , _alphax_filter(LOW_PASS_FILTER)
+  , _alphay_filter(LOW_PASS_FILTER)
+  , _distance_filter(LOW_PASS_FILTER)
+  , _prev_distance(0.f)
 {
   ROS_INFO("Create red_ball_tracker object.");
 
@@ -69,20 +77,29 @@ red_ball_tracker::red_ball_tracker(void)
 
 
 red_ball_tracker::~red_ball_tracker(void)
-{
-  ROS_INFO("Destroy red_ball_tracker object.");
-}
+{ ROS_INFO("Destroy red_ball_tracker object."); }
 
 
 void red_ball_tracker::spin_once(void)
 {
+  // Display images if needed.
   if (_need_display_img && _image_origin && _image_filtered)
+  {
     display_callback();
+
+    cv::waitKey(1);
+  }
 
   // To force disconnection when it has to happen (otherwise huge latency).
   _image_display_publisher.publish(std_msgs::Empty());
 
-  cv::waitKey(1);
+  // Purge filters.
+  if (++_idle_counter > 5)
+  {
+    (void) _alphax_filter(0);
+    (void) _alphay_filter(0);
+    (void) _distance_filter(0);
+  }
 }
 
 
@@ -102,7 +119,6 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
 {
   cv::Point2f center;
   float radius;
-  float dist = 1000;
   float diff = 1000;
   bool ballFound = false;
 
@@ -110,6 +126,7 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
   {
     _image_center.y = img->height/2;
     _image_center.x = img->width/2;
+    _is_init = false;
   }
 
   try
@@ -148,55 +165,49 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
   }
 
   // Result message.
-  ::red_ball_tracker::TrackerMsg teleopMsg;
-
   typedef std::vector<std::vector<cv::Point> >::iterator contours_iterator;
+  int i = 0, id = -1;
   for (contours_iterator iteratorContours = contours.begin();
-       iteratorContours != contours.end(); iteratorContours++)
+       iteratorContours != contours.end(); ++iteratorContours, ++i)
   {
     ballFound = true;
 
     cv::minEnclosingCircle(*iteratorContours, center, radius);
 
-    if (!_is_init)
+    if (std::abs(_prev_distance - _ball_radius /
+                 (std::tan(radius * _pixel_to_rad))) < diff)
     {
-      if (dist > std::abs(_ball_radius / (std::tan(radius * _pixel_to_rad))))
-      {
-        dist = std::abs(_ball_radius / (std::tan(radius * _pixel_to_rad)));
+      diff = std::abs(
+               _prev_distance -
+               _ball_radius / (std::tan(radius * _pixel_to_rad)));
 
-        teleopMsg.distance = _ball_radius / (std::tan(radius * _pixel_to_rad));
-        teleopMsg.alphax = _pixel_to_rad * (center.x - _image_center.x);
-        teleopMsg.alphay = _pixel_to_rad * (_image_center.y - center.y);
-      }
-      _is_init = true;
-    }
-    else
-    {
-      if (std::abs(_prev_distance - _ball_radius /
-                   (std::tan(radius * _pixel_to_rad))) < diff)
-      {
-        diff = std::abs(
-              _prev_distance - _ball_radius /
-              (std::tan(radius * _pixel_to_rad)));
+      _ball_center_in_image = center;
+      _ball_radius_in_image = radius;
 
-        teleopMsg.distance = _ball_radius / (std::tan(radius * _pixel_to_rad));
-        teleopMsg.alphax = _pixel_to_rad * (center.x - _image_center.x);
-        teleopMsg.alphay = _pixel_to_rad * (_image_center.y - center.y);
-      }
+      id = i;
     }
   }
 
-  _prev_distance = teleopMsg.distance;
+  if (_need_display_img && id >= 0)
+  {
+    cv::drawContours(_image_tmp, contours, id, cv::Scalar(0,0,255));
+  }
+
+  _prev_distance = _teleop_msg.distance;
 
   if (ballFound)
   {
-    _tracking_publisher.publish(teleopMsg);
+    set_teleop_msg(
+          _pixel_to_rad * (_ball_center_in_image.x - _image_center.x),
+          _pixel_to_rad * (_image_center.y - _ball_center_in_image.y),
+          _ball_radius / (std::tan(_ball_radius_in_image * _pixel_to_rad)));
+    _tracking_publisher.publish(_teleop_msg);
 
     ROS_DEBUG("CtrX,CtrY,Rad: [%10.5f, %10.5f, %10.5f]",
               center.x, center.y, radius);
     ROS_DEBUG("Image:         [%f,%f]", _image_center.x, _image_center.y);
     ROS_DEBUG("Teleop msg:    [%10.5f, %10.5f, %10.5f]",
-              teleopMsg.alphax, teleopMsg.alphay, teleopMsg.distance);
+              _teleop_msg.alphax, _teleop_msg.alphay, _teleop_msg.distance);
   }
 }
 
@@ -211,6 +222,7 @@ void red_ball_tracker::display_callback(void)
   cv::imshow(_lightness_window, hlsChannels[1]);
   cv::imshow(_saturation_window, hlsChannels[2]);
   cv::imshow(_filtered_window, _image_filtered->image);
+  cv::imshow(_contour_window, _image_tmp);
 }
 
 
@@ -226,11 +238,13 @@ void red_ball_tracker::display_connection_callback(void)
     cv::namedWindow(_saturation_window);
     cv::namedWindow(_lightness_window);
     cv::namedWindow(_filtered_window);
+    cv::namedWindow(_contour_window);
 
     cv::moveWindow(_hue_window, 0, 0);
     cv::moveWindow(_saturation_window, 320, 0);
     cv::moveWindow(_lightness_window, 640, 0);
-    cv::moveWindow(_filtered_window, 320, 300);
+    cv::moveWindow(_filtered_window, 160, 300);
+    cv::moveWindow(_contour_window, 480, 300);
   }
 
   if (!_need_display_img && prev_need)
@@ -238,6 +252,17 @@ void red_ball_tracker::display_connection_callback(void)
     ROS_INFO("Unsubscribtion.");
     cv::destroyAllWindows();
   }
+}
+
+
+void red_ball_tracker::set_teleop_msg(
+    float alphax, float alphay, float distance)
+{
+  _teleop_msg.alphax   = _alphax_filter(alphax);
+  _teleop_msg.alphay   = _alphay_filter(alphay);
+  _teleop_msg.distance = _distance_filter(distance);
+
+  _idle_counter = 0;
 }
 
 

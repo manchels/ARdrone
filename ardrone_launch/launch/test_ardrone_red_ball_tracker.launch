@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!--
+    Launch the red_ball_tracker on the ARDrone.
+  -->
+
+  <env
+    name="ROSCONSOLE_CONFIG_FILE"
+    value="$(find ardrone_launch)/conf/console.conf"
+  />
+
+  <node
+    pkg="ardrone_autonomy"
+    type="ardrone_driver"
+    name="ardrone_driver"
+    required="true"
+    output="screen"
+    args=""
+  />
+  <node
+    pkg="red_ball_tracker"
+    type="red_ball_tracker"
+    name="red_ball_tracker"
+    required="true"
+    output="screen"
+    args=""
+  />
+  <!--
+  <node
+    pkg="red_ball_tracker"
+    type="display_tracking"
+    name="display_tracking"
+    output="screen"
+    args=""
+  />
+  -->
+
+</launch>

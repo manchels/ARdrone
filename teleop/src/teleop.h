@@ -26,9 +26,6 @@ private:
 
   void ball_position_callback(red_ball_tracker::TrackerMsg::ConstPtr position);
   void joy_command_callback(sensor_msgs::Joy::ConstPtr joy);
-  void navigation_callback(ardrone_autonomy::Navdata::ConstPtr navdata);
-
-  inline void publish_velocity(void);
 
   ros::NodeHandle _public_node;
   ros::NodeHandle _private_node;
@@ -51,9 +48,8 @@ private:
   _ball_position_topic_name,
   _joy_command_topic_name;
 
-  int _altitude_mm;
   bool _controlled_by_joy, _last_toggle_control;
-  bool _start;
+  bool _move, _toggle_move, _last_toggle_move;
   bool _is_flying, _toggle_flying, _last_toggle_flying;
   bool _toggle_emergency, _last_toggle_emergency;
   bool _activate, _last_activate;

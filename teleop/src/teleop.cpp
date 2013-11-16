@@ -3,7 +3,7 @@
 
 #define STRINGIZE(args...) __STRING(args)
 
-#define START            buttons[0]
+#define TOGGLE_MOVE      buttons[0]
 #define TOGGLE_CONTROL   buttons[1]
 #define TOGGLE_FLYING    buttons[2]
 #define TOGGLE_EMERGENCY buttons[3]
@@ -19,10 +19,11 @@ namespace teleop {
 
 teleop::teleop(void)
   : _private_node(ros::NodeHandle(std::string("~")))
-  , _altitude_mm(0)
   , _controlled_by_joy(false)
   , _last_toggle_control(false)
-  , _start(false)
+  , _move(false)
+  , _toggle_move(false)
+  , _last_toggle_move(false)
   , _is_flying(false)
   , _toggle_flying(false)
   , _last_toggle_flying(false)
@@ -34,7 +35,7 @@ teleop::teleop(void)
   , _rate_ms(50)
   // Coefficient found by Ziegler-Nichols method.
   , _coeff(.3f, 1.f, 0.25f,
-            10.f, 10.f)
+            10.f, 4.f)
 {
   ROS_INFO("Create teleop object.");
 
@@ -85,11 +86,6 @@ teleop::teleop(void)
         _public_node.subscribe<sensor_msgs::Joy>(
           _joy_command_topic_name, 1,
           boost::bind(&teleop::joy_command_callback, this, _1));
-
-//    _ardrone_navigation_subscriber =
-//        _public_node.subscribe<ardrone_autonomy::Navdata>(
-//          _ardrone_navigation_topic_name, 1,
-//          boost::bind(&teleop::navigation_callback, this, _1));
   }
 
   // Publishers.
@@ -113,7 +109,7 @@ teleop::teleop(void)
 
   ROS_INFO(
         "Joystick commands are:\n"
-        "\tStart:            " STRINGIZE(START           ) "\n"
+        "\tToggle move:      " STRINGIZE(TOGGLE_MOVE     ) "\n"
         "\tToggle control:   " STRINGIZE(TOGGLE_CONTROL  ) "\n"
         "\tToggle emergency: " STRINGIZE(TOGGLE_EMERGENCY) "\n"
         "\tToggle flying:    " STRINGIZE(TOGGLE_EMERGENCY) "\n"
@@ -124,21 +120,20 @@ teleop::teleop(void)
 }
 
 
-teleop::~teleop(void)
-{ ROS_INFO("Destroy teleop object."); }
+teleop::~teleop(void) { ROS_INFO("Destroy teleop object."); }
 
 
 void teleop::spin_once(void)
 {
   // Stabilize when not controlled.
   {
-    _control.angular.x *= 0.5f;
-    _control.angular.y *= 0.5f;
-    _control.angular.z *= 0.5f;
+    _control.angular.x *= 0.9f;
+    _control.angular.y *= 0.9f;
+    _control.angular.z *= 0.9f;
 
-    _control.linear.x *= 0.5f;
-    _control.linear.y *= 0.5f;
-    _control.linear.z *= 0.5f;
+    _control.linear.x *= 0.9f;
+    _control.linear.y *= 0.9f;
+    _control.linear.z *= 0.9f;
   }
 
   // Update values.
@@ -149,7 +144,8 @@ void teleop::spin_once(void)
     _x_prev = _control.linear.x;
   }
 
-  publish_velocity();
+  // Publish velocity.
+  _ardrone_velocity_publisher.publish(_control);
 }
 
 
@@ -169,15 +165,15 @@ void teleop::ball_position_callback(
     red_ball_tracker::TrackerMsg::ConstPtr position)
 {
   // Autonomous mode description.
-  if (_start && !_controlled_by_joy)
+  if (_move && !_controlled_by_joy)
   {
     if (_is_flying)
     {
-      _x_p = 3.f - position->distance;
+      _x_p = 2.f - position->distance;
       _control.linear.x =
           -(_coeff.dist_x_p * _x_p +
-            _coeff.dist_x_i * _x_i/* +
-            _coeff.dist_x_d * _x_d*/);
+            _coeff.dist_x_i * _x_i +
+            _coeff.dist_x_d * _x_d);
       _control.linear.y = 0;
       _control.linear.z = 0; //-_coeff.dist_z * position->alphay;
 
@@ -199,17 +195,18 @@ void teleop::ball_position_callback(
 
 void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
 {
-  if (joy->START && !_start)
+  if (joy->TOGGLE_MOVE && !_last_toggle_move)
   {
-    ROS_INFO("Starting.");
-    _start = true;
+    _move = !_move;
+    ROS_INFO("%s moving.", _move ? "Start" : "Stop");
   }
+  _last_toggle_move = joy->TOGGLE_MOVE;
 
   if (joy->TOGGLE_CONTROL && !_last_toggle_control)
   {
     _controlled_by_joy = !_controlled_by_joy;
     ROS_INFO("Set control: %s.",
-             (_controlled_by_joy)
+             _controlled_by_joy
              ? "Joystick"
              : "Autonomous");
   }
@@ -228,7 +225,7 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
   }
 
   // Joy controlled mode description.
-  if (_start && _controlled_by_joy)
+  if (_move && _controlled_by_joy)
   {
     _control.linear.x  = _scale * joy->FORWARD;  // forward, backward
     _control.linear.y  = _scale * joy->LATERAL;  // left, right
@@ -259,14 +256,6 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
     }
   }
 }
-
-
-void teleop::navigation_callback(ardrone_autonomy::Navdata::ConstPtr navdata)
-{ _altitude_mm = navdata->altd; }
-
-
-void teleop::publish_velocity(void)
-{ _ardrone_velocity_publisher.publish(_control); }
 
 
 } // teleop

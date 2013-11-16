@@ -8,8 +8,8 @@
 namespace rbt {
 
 
-cv::Scalar const red_ball_tracker::_hsl_min = cv::Scalar(164,0,233);
-cv::Scalar const red_ball_tracker::_hsl_max = cv::Scalar(255,255,255);
+cv::Scalar const red_ball_tracker::_hsl_min = cv::Scalar(140,80,210);
+cv::Scalar const red_ball_tracker::_hsl_max = cv::Scalar(200,220,255);
 float const red_ball_tracker::_ball_radius = 0.035f;
 float const red_ball_tracker::_pixel_to_rad = 0.002f;
 std::string const red_ball_tracker::_hue_window = "hue channel";
@@ -127,13 +127,22 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
     _image_center.y = img->height/2;
     _image_center.x = img->width/2;
     _is_init = false;
+
+    try
+    {
+      _image_filtered =
+          cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("Exception while trying to copy image: %s", e.what());
+      return;
+    }
   }
 
   try
   {
     _image_origin =
-        cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
-    _image_filtered =
         cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
   }
   catch (cv_bridge::Exception& e)
@@ -161,18 +170,22 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
     cv::Canny(_image_tmp, _image_tmp, 100, 200);
     cv::findContours(
           _image_tmp, contours, dummy,
-          CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+          CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
   }
+
+  if (_need_display_img)
+    cv::drawContours(_image_tmp, contours, -1, 255);
 
   // Result message.
   typedef std::vector<std::vector<cv::Point> >::iterator contours_iterator;
-  int i = 0, id = -1;
   for (contours_iterator iteratorContours = contours.begin();
-       iteratorContours != contours.end(); ++iteratorContours, ++i)
+       iteratorContours != contours.end(); ++iteratorContours)
   {
     ballFound = true;
 
     cv::minEnclosingCircle(*iteratorContours, center, radius);
+    if (_need_display_img)
+      cv::circle(_image_tmp, center, radius, 125, 2);
 
     if (std::abs(_prev_distance - _ball_radius /
                  (std::tan(radius * _pixel_to_rad))) < diff)
@@ -183,14 +196,7 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
 
       _ball_center_in_image = center;
       _ball_radius_in_image = radius;
-
-      id = i;
     }
-  }
-
-  if (_need_display_img && id >= 0)
-  {
-    cv::drawContours(_image_tmp, contours, id, cv::Scalar(0,0,255));
   }
 
   _prev_distance = _teleop_msg.distance;
@@ -202,6 +208,10 @@ void red_ball_tracker::image_callback(sensor_msgs::Image::ConstPtr img)
           _pixel_to_rad * (_image_center.y - _ball_center_in_image.y),
           _ball_radius / (std::tan(_ball_radius_in_image * _pixel_to_rad)));
     _tracking_publisher.publish(_teleop_msg);
+
+    if (_need_display_img)
+      cv::circle(_image_tmp, _ball_center_in_image,
+                 _ball_radius_in_image, 125, 4);
 
     ROS_DEBUG("CtrX,CtrY,Rad: [%10.5f, %10.5f, %10.5f]",
               center.x, center.y, radius);

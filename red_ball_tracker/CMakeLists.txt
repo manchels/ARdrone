@@ -14,6 +14,8 @@ rosbuild_init()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=gnu++0x)
+
 file(GLOB SOURCE "src/*.c*")
 file(GLOB HEADER "src/*.h*")
 rosbuild_add_executable(red_ball_tracker ${SOURCE} ${HEADER})

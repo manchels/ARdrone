@@ -9,8 +9,14 @@ Welcome to Ardrone Red Ball Control's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+  :maxdepth: 2
 
+  introduction
+  specifications
+  how_to
+  red_ball_tracker
+  joy_control
+  teleop
 
 
 Indices and tables

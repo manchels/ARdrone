@@ -9,5 +9,4 @@ int main(int argc, char** argv)
   teleop.spin();
 
   return EXIT_SUCCESS;
-
 }

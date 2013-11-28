@@ -2,6 +2,7 @@ CMakeLists.txt.user
 __init__.py
 __init__.pyc
 *~
+.*.swp
 build/*
 */build/*
 */bin/*

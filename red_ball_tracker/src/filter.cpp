@@ -4,7 +4,7 @@
 namespace rbt {
 
 
-filter::filter(const std::vector<float> &coeffs)
+filter::filter(const std::vector<float> &coeffs, float start)
   : _values(coeffs.size(), 0)
   , _coeffs(coeffs)
   , _head(0)
@@ -12,6 +12,10 @@ filter::filter(const std::vector<float> &coeffs)
 
 
 filter::~filter(void) {}
+
+
+float filter::reset(float start)
+{ for (float& val : _values) val = start; return start; }
 
 
 float filter::operator ()(float value)

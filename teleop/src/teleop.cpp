@@ -1,5 +1,7 @@
 #include "teleop.h"
+
 #include <cassert>
+
 
 #define STRINGIZE(args...) __STRING(args)
 
@@ -33,46 +35,45 @@ teleop::teleop(void)
   , _x_prev(0.f)
   , _x_p(0.f), _x_i(0.f), _x_d(0.f)
   , _rate_ms(50)
-  // Coefficient found by Ziegler-Nichols method.
-  , _coeff(.3f, 1.f, 0.25f,
-            10.f, 4.f)
+  , _coeff(0.f,0.f,0.f,0.f,0.f)
 {
-  ROS_INFO("Create teleop object.");
-
   // Parameters.
   {
-    _private_node.param(
-          "reset", _ardrone_reset_topic_name, std::string("ardrone/reset"));
-    ROS_INFO("Ardrone reset topic : %s", _ardrone_reset_topic_name.c_str());
+    // Topics.
+    {
+      _private_node.param("reset"     , _ardrone_reset_topic_name     , std::string("ardrone/reset")                      );
+      _private_node.param("land"      , _ardrone_land_topic_name      , std::string("ardrone/land")                       );
+      _private_node.param("takeoff"   , _ardrone_takeoff_topic_name   , std::string("ardrone/takeoff")                    );
+      _private_node.param("velocity"  , _ardrone_velocity_topic_name  , std::string("cmd_vel")                            );
+      _private_node.param("navigation", _ardrone_navigation_topic_name, std::string("ardrone/navdata")                    );
+      _private_node.param("ball"      , _ball_position_topic_name     , std::string("ardrone/image_raw/red_ball_tracking"));
+      _private_node.param("joy"       , _joy_command_topic_name       , std::string("joy")                                );
+    }
 
-    _private_node.param(
-          "land", _ardrone_land_topic_name, std::string("ardrone/land"));
-    ROS_INFO("Ardrone land topic : %s", _ardrone_land_topic_name.c_str());
+    // Coefficient found by Ziegler-Nichols method.
+    {
+      double dxp, dxi, dxd, dzp, tzp;
 
-    _private_node.param(
-          "takeoff", _ardrone_takeoff_topic_name,
-          std::string("ardrone/takeoff"));
-    ROS_INFO("Ardrone reset topic : %s", _ardrone_reset_topic_name.c_str());
+      _private_node.param("dist_x_p" , dxp, 3.0 );
+      _private_node.param("dist_x_i" , dxi, 1.0 );
+      _private_node.param("dist_x_d" , dxd, 0.25);
+      _private_node.param("dist_z_p" , dzp, 10.0);
+      _private_node.param("theta_z_p", tzp, 2.0 );
 
-    _private_node.param(
-          "velocity", _ardrone_velocity_topic_name, std::string("cmd_vel"));
-    ROS_INFO("Ardrone velocity topic : %s",
-             _ardrone_velocity_topic_name.c_str());
+      _coeff.dist_x_p  = dxp;
+      _coeff.dist_x_i  = dxi;
+      _coeff.dist_x_d  = dxd;
+      _coeff.dist_z_p  = dzp;
+      _coeff.theta_z_p = tzp;
+    }
 
-    _private_node.param(
-          "navigation", _ardrone_navigation_topic_name,
-          std::string("ardrone/navdata"));
-    ROS_INFO("Ardrone navigation topic : %s",
-             _ardrone_navigation_topic_name.c_str());
+    // Distence to user.
+    {
+      double user_dist;
 
-    _private_node.param(
-          "ball", _ball_position_topic_name,
-          std::string("ardrone/image_raw/red_ball_tracking"));
-    ROS_INFO("Ball position topic : %s", _ball_position_topic_name.c_str());
-
-    _private_node.param(
-          "joy", _joy_command_topic_name, std::string("joy"));
-    ROS_INFO("Joy command topic : %s", _joy_command_topic_name.c_str());
+      _private_node.param("user_distance", user_dist, 1.5);
+      _user_distance = user_dist;
+    }
   }
 
   // Subscribers.
@@ -107,16 +108,37 @@ teleop::teleop(void)
           _ardrone_velocity_topic_name, 10);
   }
 
-  ROS_INFO(
-        "Joystick commands are:\n"
-        "\tToggle move:      " STRINGIZE(TOGGLE_MOVE     ) "\n"
-        "\tToggle control:   " STRINGIZE(TOGGLE_CONTROL  ) "\n"
-        "\tToggle emergency: " STRINGIZE(TOGGLE_EMERGENCY) "\n"
-        "\tToggle flying:    " STRINGIZE(TOGGLE_EMERGENCY) "\n"
-        "\tLateral axe:      " STRINGIZE(LATERAL         ) "\n"
-        "\tForward axe:      " STRINGIZE(FORWARD         ) "\n"
-        "\tYaw axe:          " STRINGIZE(YAW             ) "\n"
-        "\tAltitude axe:     " STRINGIZE(ALTITUDE        ) "\n");
+  // Info.
+  {
+    sleep(2);
+    ROS_INFO("Create teleop object.");
+    ROS_INFO("Ardrone reset topic      : %s", _ardrone_reset_topic_name.c_str()     );
+    ROS_INFO("Ardrone land topic       : %s", _ardrone_land_topic_name.c_str()      );
+    ROS_INFO("Ardrone reset topic      : %s", _ardrone_reset_topic_name.c_str()     );
+    ROS_INFO("Ardrone velocity topic   : %s", _ardrone_velocity_topic_name.c_str()  );
+    ROS_INFO("Ardrone navigation topic : %s", _ardrone_navigation_topic_name.c_str());
+    ROS_INFO("Ball position topic      : %s", _ball_position_topic_name.c_str()     );
+    ROS_INFO("Joy command topic        : %s", _joy_command_topic_name.c_str()       );
+    ROS_INFO(
+          "Joystick commands are:\n"
+          "\tToggle move:      " STRINGIZE(TOGGLE_MOVE     ) "\n"
+          "\tToggle control:   " STRINGIZE(TOGGLE_CONTROL  ) "\n"
+          "\tToggle emergency: " STRINGIZE(TOGGLE_EMERGENCY) "\n"
+          "\tToggle flying:    " STRINGIZE(TOGGLE_EMERGENCY) "\n"
+          "\tLateral axe:      " STRINGIZE(LATERAL         ) "\n"
+          "\tForward axe:      " STRINGIZE(FORWARD         ) "\n"
+          "\tYaw axe:          " STRINGIZE(YAW             ) "\n"
+          "\tAltitude axe:     " STRINGIZE(ALTITUDE        ) "\n");
+    ROS_INFO(
+          "Controller parameters:\n"
+          "\tDistance.X PID: [ %10.5f, %10.5f, %10.5f ]\n"
+          "\tDistance.Z P:   [ %10.5f ]\n"
+          "\tAngle.Z    P:   [ %10.5f ]\n",
+          _coeff.dist_x_p, _coeff.dist_x_i, _coeff.dist_x_d,
+          _coeff.dist_z_p,
+          _coeff.theta_z_p);
+    ROS_INFO("User distance: %f", _user_distance);
+  }
 }
 
 
@@ -169,7 +191,7 @@ void teleop::ball_position_callback(
   {
     if (_is_flying)
     {
-      _x_p = 2.f - position->distance;
+      _x_p = _user_distance - position->distance;
       _control.linear.x =
           -(_coeff.dist_x_p * _x_p +
             _coeff.dist_x_i * _x_i +
@@ -179,9 +201,10 @@ void teleop::ball_position_callback(
 
       _control.angular.x = 0;
       _control.angular.y = 0;
-      _control.angular.z = -(_coeff.theta_z * position->alphax);
+      _control.angular.z = -(_coeff.theta_z_p * position->alphax);
 
-      ROS_INFO("[ %10.5f, %10.5f, %10.5f ]", _x_p, _x_i, _x_d);
+      ROS_DEBUG("[ x_p, x_i, x_d ] = [ %10.5f, %10.5f, %10.5f ]",
+                _x_p, _x_i, _x_d);
     }
     else
     {

@@ -12,9 +12,10 @@ class filter
 
 public:
 
-  filter(std::vector<float> const& coeffs);
+  filter(std::vector<float> const& coeffs, float start = 0.f);
   ~filter(void);
 
+  float reset(float start = 0.f);
   float operator ()(float value);
 };
 

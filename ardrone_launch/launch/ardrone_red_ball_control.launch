@@ -2,21 +2,9 @@
 <launch>
 
   <!--
-    Launch the red_ball_tracker on the ARDrone.
+    Launch the ARDrone and control it with the red ball.
   -->
 
-  <env
-    name="ROSCONSOLE_CONFIG_FILE"
-    value="$(find ardrone_launch)/conf/console.conf"
-  />
-
-  <node
-    pkg="rxtools"
-    type="rxconsole"
-    name="published_topics"
-    output="log"
-    args=""
-  />
   <node
     pkg="ardrone_autonomy"
     type="ardrone_driver"
@@ -37,6 +25,30 @@
     <param name="max_hue"        type="double" value="200" />
     <param name="max_saturation" type="double" value="255" />
     <param name="max_lightness"  type="double" value="255" />
+  </node>
+  <node
+    pkg="joy"
+    type="joy_node"
+    name="joy_node"
+    required="true"
+    output="log"
+    args=""
+  />
+  <node
+    pkg="teleop"
+    type="teleop"
+    name="teleop"
+    required="true"
+    output="log"
+    args="">
+
+    <!-- Controller parameters. -->
+    <param name="user_distance" type="double" value="0.8" />
+    <param name="dist_x_p"      type="double" value="0.2" />
+    <param name="dist_x_i"      type="double" value="0.0" />
+    <param name="dist_x_d"      type="double" value="0.0" />
+    <param name="dist_z_p"      type="double" value="0.0" />
+    <param name="theta_z_p"     type="double" value="2.0" />
   </node>
 
 </launch>

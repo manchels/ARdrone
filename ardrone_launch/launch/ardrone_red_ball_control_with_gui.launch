@@ -2,10 +2,8 @@
 <launch>
 
   <!--
-    Launch the red_ball_tracker on the test_red_ball_2.bag file.
+    Launch the ARDrone and control it with the red ball.
   -->
-  <arg name="bag_path" default="$(find ardrone_bags)/rosbag/" />
-  <arg name="bag_file" default="test_red_ball_2.bag" />
 
   <env
     name="ROSCONSOLE_CONFIG_FILE"
@@ -16,6 +14,14 @@
     pkg="rxtools"
     type="rxconsole"
     name="published_topics"
+    output="log"
+    args=""
+  />
+  <node
+    pkg="ardrone_autonomy"
+    type="ardrone_driver"
+    name="ardrone_driver"
+    required="true"
     output="log"
     args=""
   />
@@ -33,11 +39,28 @@
     <param name="max_lightness"  type="double" value="255" />
   </node>
   <node
-    pkg="rosbag"
-    type="play"
-    name="player"
+    pkg="joy"
+    type="joy_node"
+    name="joy_node"
+    required="true"
     output="log"
-    args="--clock $(arg bag_path)$(arg bag_file)"
+    args=""
   />
+  <node
+    pkg="teleop"
+    type="teleop"
+    name="teleop"
+    required="true"
+    output="log"
+    args="">
+
+    <!-- Controller parameters. -->
+    <param name="user_distance" type="double" value="0.8" />
+    <param name="dist_x_p"      type="double" value="0.2" />
+    <param name="dist_x_i"      type="double" value="0.0" />
+    <param name="dist_x_d"      type="double" value="0.0" />
+    <param name="dist_z_p"      type="double" value="0.0" />
+    <param name="theta_z_p"     type="double" value="2.0" />
+  </node>
 
 </launch>

@@ -12,3 +12,4 @@ file(GLOB HEADER "src/*.h"   "src/*.hpp")
 file(GLOB SOURCE "src/*.cpp")
 
 rosbuild_add_executable(${PROJECT_NAME} ${HEADER} ${SOURCE})
+

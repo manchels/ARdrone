@@ -54,6 +54,7 @@ private:
   bool _toggle_emergency, _last_toggle_emergency;
   bool _activate, _last_activate;
   float _scale;
+  float _user_distance;
 
   geometry_msgs::Twist _control;
   float _x_prev;
@@ -67,11 +68,11 @@ private:
         float dz,
         float tz)
       : dist_x_p(dxp), dist_x_i(dxp), dist_x_d(dxp)
-      , dist_z(dz), theta_z(tz) {}
+      , dist_z_p(dz), theta_z_p(tz) {}
 
     float
     dist_x_p, dist_x_i, dist_x_d,
-    dist_z, theta_z;
+    dist_z_p, theta_z_p;
   }
   _coeff;
 };

@@ -28,7 +28,6 @@ public:
 
 private:
 
-  static const cv::Scalar _hsl_min, _hsl_max;
   static const float _pixel_to_rad, _ball_radius;
   static const std::string
   _hue_window, _saturation_window, _lightness_window,
@@ -62,6 +61,7 @@ private:
   float _prev_distance;
   cv::Point2f _ball_center_in_image;
   float _ball_radius_in_image;
+  cv::Scalar _hsl_min, _hsl_max;
 
   cv::Mat _image_tmp;
   cv::Point2f _image_center;

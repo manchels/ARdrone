@@ -14,6 +14,7 @@ Contents:
   introduction
   specifications
   how_to
+  system_description
   red_ball_tracker
   joy_control
   teleop

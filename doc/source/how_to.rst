@@ -6,7 +6,8 @@ Get The Sources
 
 You can get a clone of the git repository:
 
-* :command:`git clone` git@github.com:manchels/ARdrone.git
+* :command:`git clone`
+  `git@github.com:manchels/ARdrone.git <https://github.com/manchels/ARdrone>`_
 
 And to get the **ardrone_autonomy package** in the stack:
 

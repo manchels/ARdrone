@@ -6,6 +6,8 @@ In the stack you can find the following ros packages:
 .. |RED_BALL_TRACKER| replace:: :ref:`red_ball_tracker <red_ball_tracker>`
 .. |TELEOP|           replace:: :ref:`teleop <teleop>`
 
+.. tabularcolumns:: |p{3cm}|L|
+
 ==================== ============================================================================
 Package              Description
 ==================== ============================================================================

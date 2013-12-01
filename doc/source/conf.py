@@ -122,6 +122,8 @@ html_title = project + ' v' + release + ' Documentation'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
+html_style = 'style.css'
+
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 #html_last_updated_fmt = '%b %d, %Y'
@@ -177,14 +179,17 @@ latex_elements = {
 #'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
-#'preamble': '',
+  'preamble': '\\usepackage{' + os.path.dirname(__file__) +'/_static/style}',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'ArdroneRedBallControl.tex', u'Ardrone Red Ball Control Documentation',
-   u'Simon Manchel, Laurent Louf, Franck Duriez', 'manual'),
+  ('index',
+   'ArdroneRedBallControl.tex',
+   u'Ardrone Red Ball Control Documentation',
+   u'Simon Manchel, Laurent Louf, Franck Duriez',
+   'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

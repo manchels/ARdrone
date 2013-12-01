@@ -1,0 +1,12 @@
+
+\let\originaltabular\tabular
+\let\endoriginaltabular\endtabular
+\renewenvironment{tabular}
+{
+  \begin{center}
+  \begin{originaltabular}
+}
+{
+  \end{originaltabular}
+  \end{center}
+}

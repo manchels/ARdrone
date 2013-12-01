@@ -64,21 +64,23 @@ Parameters
 
 You can change the following parameters using :command:`rosparam`:
 
+.. tabularcolumns:: |p{2.3cm}|p{1.2cm}|L|
+
 ============== ======= ===================================================================
 Name           Type    Description                            
 ============== ======= ===================================================================
 user_distance  double  Distance between the user and the ball.
 -------------- ------- -------------------------------------------------------------------
-dist_x_p       double  P parameter of the PID controller
+dist_x_p       double  **P** parameter of the **PID** controller
                        for distance between the user and the ball.
 -------------- ------- -------------------------------------------------------------------
-dist_x_i       double  I parameter of the PID controller for distance
+dist_x_i       double  **I** parameter of the **PID** controller for distance
                        between the user and the ball.
 -------------- ------- -------------------------------------------------------------------
-dist_x_d       double  D parameter of the PID controller for
+dist_x_d       double  **D** parameter of the **PID** controller for
                        distance between the user and the ball.
 -------------- ------- -------------------------------------------------------------------
-theta_z_p      double  P parameter of the P controller for angle between
+theta_z_p      double  **P** parameter of the **P** controller for angle between
                        the axe ball-drone and the drone orientation.
 ============== ======= ===================================================================
 
@@ -104,6 +106,8 @@ Publishers
 
 Subscriber
 ++++++++++
+
+.. tabularcolumns:: |p{3.4cm}|p{2.9cm}|L|
 
 +--------------------+---------------------+-----------------------------------------------+
 | Name               | Type                | Decritption                                   |

@@ -37,14 +37,12 @@ private:
 
   ros::Subscriber _ball_position_subscriber;
   ros::Subscriber _joy_command_subscriber;
-  ros::Subscriber _ardrone_navigation_subscriber;
 
   std::string
   _ardrone_reset_topic_name,
   _ardrone_land_topic_name,
   _ardrone_takeoff_topic_name,
   _ardrone_velocity_topic_name,
-  _ardrone_navigation_topic_name,
   _ball_position_topic_name,
   _joy_command_topic_name;
 

@@ -45,7 +45,6 @@ teleop::teleop(void)
       _private_node.param("land"      , _ardrone_land_topic_name      , std::string("ardrone/land")                       );
       _private_node.param("takeoff"   , _ardrone_takeoff_topic_name   , std::string("ardrone/takeoff")                    );
       _private_node.param("velocity"  , _ardrone_velocity_topic_name  , std::string("cmd_vel")                            );
-      _private_node.param("navigation", _ardrone_navigation_topic_name, std::string("ardrone/navdata")                    );
       _private_node.param("ball"      , _ball_position_topic_name     , std::string("ardrone/image_raw/red_ball_tracking"));
       _private_node.param("joy"       , _joy_command_topic_name       , std::string("joy")                                );
     }

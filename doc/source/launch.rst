@@ -29,11 +29,24 @@ Red Ball Control With Gui
 
 This is the same than the previous, but this one will display:
 
-* Filtered images
+* :ref:`Filtered images <tracking>`
 
-* Ball detetection
+* :ref:`Ball detetection <tracking>`
 
-* Debug console
+* Debug console:
+
+.. _console:
+
+  .. figure:: _static/launch_console.png
+    :width: 80%
+    :align: center
+    :alt: alternate text
+
+  ..
+
+  This console is a very convenient tools to debug, because you can can filter
+  the messages to display. Here, it has been configured the to display also **DEBUG**
+  messages which is not the case by default in a simple terminal.
 
 To use it:
 
@@ -42,7 +55,8 @@ To use it:
 Rosbag Red Ball Tracker
 +++++++++++++++++++++++
 
-This is a test bench for the |RED_BALL_TRACKER| based on a rosbag file.
+| This is a test bench for the |RED_BALL_TRACKER| based on a rosbag file.
+| It display also the :ref:`console <console>` tool.
 
 To use it:
 
@@ -51,7 +65,8 @@ To use it:
 ARDrone Red Ball Tracker
 ++++++++++++++++++++++++
 
-This is a test bench for the |RED_BALL_TRACKER| based on the ARDrone camera.
+| This is a test bench for the |RED_BALL_TRACKER| based on the ARDrone camera.
+| It display also the :ref:`console <console>` tool.
 
 To use it:
 

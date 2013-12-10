@@ -10,6 +10,6 @@ This is a project realized for the C10-1 3rd year course at the
 
 * Franck Duriez
 
-The aim of the project is to provide a of stack to control an
+The aim of the project is to provide a stack to control an
 `ARDrone <http://ardrone2.parrot.com/>`_ with a simple red ball.
 

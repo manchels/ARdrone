@@ -104,8 +104,8 @@ Publishers
 | cmd_vel            | geometry_msgs/Twist | Command velocity to the ARDrone.              |
 +--------------------+---------------------+-----------------------------------------------+
 
-Subscriber
-++++++++++
+Subscribers
++++++++++++
 
 .. tabularcolumns:: |p{3.4cm}|p{2.9cm}|L|
 

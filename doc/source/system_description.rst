@@ -12,8 +12,8 @@ In the stack you can find the following ros packages:
 Package              Description
 ==================== ============================================================================
 ardrone_autonomy     It contain the ardrone driver. If you don't want to
-                     download it. Don't use the :command:`git submodule`
-                     then you clone the repository.
+                     download it. Don't use the :command:`git submodule` command
+                     when you clone the repository.
 -------------------- ----------------------------------------------------------------------------
 ardrone_bags         It contains some rosbag used to make tests.
 -------------------- ----------------------------------------------------------------------------

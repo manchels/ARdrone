@@ -179,7 +179,8 @@ latex_elements = {
   'pointsize': '12pt',
 
 # Additional stuff for the LaTeX preamble.
-  'preamble': '\\usepackage{' + os.path.dirname(__file__) +'/_static/style}',
+  'preamble': '\\usepackage{float}\n' +
+              '\\usepackage{' + os.path.dirname(__file__) +'/_static/style}',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

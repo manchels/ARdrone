@@ -14,6 +14,7 @@
 #define YAW              axes[2]
 #define ALTITUDE         axes[3]
 
+#define NUM_MISS_FOR_LOST 50
 
 // Methods definitions.
 namespace teleop {
@@ -32,6 +33,8 @@ teleop::teleop(void)
   , _toggle_emergency(false)
   , _last_toggle_emergency(false)
   , _scale(1.f)
+  , _ball_miss(0)
+  , _ball_detected(false)
   , _x_prev(0.f)
   , _x_p(0.f), _x_i(0.f), _x_d(0.f)
   , _rate_ms(50)
@@ -47,6 +50,11 @@ teleop::teleop(void)
       _private_node.param("velocity"  , _ardrone_velocity_topic_name  , std::string("cmd_vel")                            );
       _private_node.param("ball"      , _ball_position_topic_name     , std::string("ardrone/image_raw/red_ball_tracking"));
       _private_node.param("joy"       , _joy_command_topic_name       , std::string("joy")                                );
+    }
+
+    // Services
+    {
+      _private_node.param("led_service", _ardrone_led_service_name, std::string("ardrone/setledanimation"));
     }
 
     // Coefficient found by Ziegler-Nichols method.
@@ -107,6 +115,11 @@ teleop::teleop(void)
           _ardrone_velocity_topic_name, 10);
   }
 
+  // ServiceClient.
+  {
+    _led_client = nh.serviceClient<my_package::Foo>(_ardrone_led_service_name);
+  }
+
   // Info.
   {
     sleep(2);
@@ -157,12 +170,23 @@ void teleop::spin_once(void)
     _control.linear.z *= 0.9f;
   }
 
-  // Update values.
+  // Is ball detected or not ?
+  if (_move && !_controlled_by_joy)
   {
-    _x_i += (_control.linear.x - _x_prev) * _rate_ms / 1000.f;
-    _x_d  = 1000.f * (_control.linear.x - _x_prev) / _rate_ms;
+    if (!_ball_detected && _ball_miss == 0)
+    {
+      _ball_detected = true;
+      blink_led(BLINK_GREEN, 5, 1);
+    }
 
-    _x_prev = _control.linear.x;
+    if (_ball_detected && _ball_miss > NUM_MISS_FOR_LOST)
+    {
+      _ball_detected = false;
+      bink_led(BLINK_ORANGE, 5, 1);
+    }
+
+    // Update ball miss.
+    _ball_miss++;
   }
 
   // Publish velocity.
@@ -202,6 +226,14 @@ void teleop::ball_position_callback(
       _control.angular.y = 0;
       _control.angular.z = -(_coeff.theta_z_p * position->alphax);
 
+      // Update values.
+      {
+        _x_i += (_control.linear.x - _x_prev) * _rate_ms / 1000.f;
+        _x_d  = 1000.f * (_control.linear.x - _x_prev) / _rate_ms;
+
+        _x_prev = _control.linear.x;
+      }
+
       ROS_DEBUG("[ x_p, x_i, x_d ] = [ %10.5f, %10.5f, %10.5f ]",
                 _x_p, _x_i, _x_d);
     }
@@ -210,7 +242,13 @@ void teleop::ball_position_callback(
       ROS_INFO("Taking off!");
       _ardrone_takeoff_publisher.publish(std_msgs::Empty());
       _is_flying = true;
+
+      // Reset PID values.
+      _x_p = _x_i = _x_d = _x_prev = 0.f;
     }
+
+    // Reset the miss counter.
+    _ball_miss = 0;
   }
 }
 
@@ -231,6 +269,11 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
              _controlled_by_joy
              ? "Joystick"
              : "Autonomous");
+
+    if (_controlled_by_joy)
+      blink_led(LEFT_RED_RIGHT_GREEN, 5.f, 1);
+    else
+      blink_led(LEFT_GREEN_RIGHT_RED, 5.f, 1);
   }
   _last_toggle_control = joy->TOGGLE_CONTROL;
 
@@ -276,6 +319,20 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
       }
 
     }
+  }
+}
+
+
+void teleop::blink_led(led_color color, float frequency, uint8_t duration)
+{
+  ardrone_autonomy::LedAnim led_anim;
+  led_anim.type     = color;
+  led_anim.freq     = frequency;
+  led_anim.duration = duration;
+
+  if (!_led_client.call(led_anim))
+  {
+    ROS_DEBUG("Unable to blink led.");
   }
 }
 

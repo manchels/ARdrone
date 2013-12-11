@@ -24,8 +24,27 @@ public:
 
 private:
 
+  enum led_color
+  {
+    BLINK_GREEN_RED      = 0 ,
+    BLINK_GREEN          = 1 ,
+    BLINK_RED            = 2 ,
+    BLINK_ORANGE         = 3 ,
+    SNAKE_GREEN_RED      = 4 ,
+    FIRE                 = 5 ,
+    STANDARD             = 6 ,
+    RED                  = 7 ,
+    GREEN                = 8 ,
+    RED_SNAKE            = 9 ,
+    BLANK                = 10,
+    LEFT_GREEN_RIGHT_RED = 11,
+    LEFT_RED_RIGHT_GREEN = 12,
+    BLINK_STANDARD       = 13
+  };
+
   void ball_position_callback(red_ball_tracker::TrackerMsg::ConstPtr position);
   void joy_command_callback(sensor_msgs::Joy::ConstPtr joy);
+  void blink_led(led_color color, float frequency, uint8_t duration);
 
   ros::NodeHandle _public_node;
   ros::NodeHandle _private_node;
@@ -38,11 +57,14 @@ private:
   ros::Subscriber _ball_position_subscriber;
   ros::Subscriber _joy_command_subscriber;
 
+  ros::ServiceClient _led_client;
+
   std::string
   _ardrone_reset_topic_name,
   _ardrone_land_topic_name,
   _ardrone_takeoff_topic_name,
   _ardrone_velocity_topic_name,
+  _ardrone_led_service_name,
   _ball_position_topic_name,
   _joy_command_topic_name;
 
@@ -53,6 +75,8 @@ private:
   bool _activate, _last_activate;
   float _scale;
   float _user_distance;
+  int _ball_miss;
+  bool _ball_detected;
 
   geometry_msgs::Twist _control;
   float _x_prev;

@@ -17,5 +17,8 @@ The software must take in charge the multiple targets problem.
 The drone have to follow the ball when the dstance between them
 is less than 2,5 meters.
 
+The drone must indicate the mode switching and
+signal when the ball is found and lost.
+
 Launch and debug facilities must be provided.
 

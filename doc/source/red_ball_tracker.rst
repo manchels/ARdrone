@@ -10,22 +10,6 @@ To run it:
 
 * :command:`rosrun red_ball_tracker red_ball_tracker`
 
-Display Tracking
-----------------
-
-During the run, you can see the processed images using:
-
-* :command:`rosrun red_ball_tracker display_tracking`
-
-This will display this kind of images:
-
-.. _tracking:
-
-.. figure:: _static/tracking.png
-    :width: 80%
-    :align: center
-    :alt: alternate text
-
 Parameters
 ----------
 
@@ -99,3 +83,25 @@ red_ball_tracker/TrackerMsg:
 | distance  | float32 |  Distance to the ball.                                 |
 +-----------+---------+--------------------------------------------------------+
 
+Services
+--------
+
+Display Tracking
+++++++++++++++++
+
+During the run, you can see the processed images using:
+
+* :command:`rosservice call /red_ball_tracker/display_tracking 1`
+
+To stop it:
+
+* :command:`rosservice call /red_ball_tracker/display_tracking 0`
+
+This will display this kind of images:
+
+.. _tracking:
+
+.. figure:: _static/tracking.png
+    :width: 80%
+    :align: center
+    :alt: alternate text

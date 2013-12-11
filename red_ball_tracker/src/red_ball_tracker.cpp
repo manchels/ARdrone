@@ -65,7 +65,11 @@ red_ball_tracker::red_ball_tracker(void)
   // Set topic names.
   {
     _tracking_topic_name = _image_topic_name + "/red_ball_tracking";
-    _display_topic_name  = _image_topic_name + "/display_tracking";
+  }
+
+  // Set server names.
+  {
+    _display_server_name = "red_ball_tracker/display_tracking";
   }
 
   // Subscribers.
@@ -81,24 +85,23 @@ red_ball_tracker::red_ball_tracker(void)
     _tracking_publisher =
         _public_node.advertise< ::red_ball_tracker::TrackerMsg>(
           _tracking_topic_name, 100);
-
-    _image_display_publisher =
-        _public_node.advertise<std_msgs::Empty>(
-          _display_topic_name, 1,
-          boost::bind(&red_ball_tracker::display_connection_callback, this),
-          boost::bind(&red_ball_tracker::display_connection_callback, this));
   }
 
-  // Init display if needed.
-  display_connection_callback();
+  // Services.
+  {
+    _display_tracking_server =
+        _public_node.advertiseService(
+          _display_server_name.c_str(),
+          &red_ball_tracker::display_connection_callback,
+          this);
+  }
 
   // Info.
   {
     sleep(2);
     ROS_INFO("Create red_ball_tracker object.");
     ROS_INFO("Image topic : %s", _image_topic_name.c_str());
-    ROS_INFO("Tracking topic : %s", _tracking_topic_name.c_str());
-    ROS_INFO("Display topic : %s", _display_topic_name.c_str());
+    ROS_INFO("Display topic : %s", _display_server_name.c_str());
     ROS_INFO("To display the image filtering, please run the "
              "display_tracking node");
     ROS_INFO("Min HSL: [ %.5f, %.5f, %.5f ]\n"
@@ -122,9 +125,6 @@ void red_ball_tracker::spin_once(void)
 
     cv::waitKey(1);
   }
-
-  // To force disconnection when it has to happen (otherwise huge latency).
-  _image_display_publisher.publish(std_msgs::Empty());
 
   // Increase idle counter.
   ++_idle_counter;
@@ -264,14 +264,19 @@ void red_ball_tracker::display_callback(void)
 }
 
 
-void red_ball_tracker::display_connection_callback(void)
+bool red_ball_tracker::display_connection_callback(
+    ::red_ball_tracker::DisplayTracking::Request& request,
+    ::red_ball_tracker::DisplayTracking::Response& response)
 {
-  bool prev_need = _need_display_img;
-  _need_display_img = (_image_display_publisher.getNumSubscribers() > 0);
-
-  if (_need_display_img && !prev_need)
+  if (request.activate == _need_display_img)
   {
-    ROS_INFO("Subscribtion.");
+    response.result = false;
+    return true;
+  }
+
+  if (request.activate)
+  {
+    ROS_INFO("Display tracking activation.");
     cv::namedWindow(_hue_window);
     cv::namedWindow(_saturation_window);
     cv::namedWindow(_lightness_window);
@@ -284,12 +289,23 @@ void red_ball_tracker::display_connection_callback(void)
     cv::moveWindow(_filtered_window, 160, 300);
     cv::moveWindow(_contour_window, 480, 300);
   }
-
-  if (!_need_display_img && prev_need)
+  else
   {
-    ROS_INFO("Unsubscribtion.");
+    ROS_INFO("Stop displaying tracking.");
+    cv::destroyWindow(_hue_window);
+    cv::destroyWindow(_saturation_window);
+    cv::destroyWindow(_lightness_window);
+    cv::destroyWindow(_filtered_window);
+    cv::destroyWindow(_contour_window);
+    cv::waitKey(1);
+
     cv::destroyAllWindows();
+    cv::waitKey(1);
   }
+
+  _need_display_img = request.activate;
+  response.result = true;
+  return true;
 }
 
 

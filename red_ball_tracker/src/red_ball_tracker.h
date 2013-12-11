@@ -10,6 +10,7 @@
 #include <geometry_msgs/Twist.h>
 
 #include <red_ball_tracker/TrackerMsg.h>
+#include <red_ball_tracker/DisplayTracking.h>
 
 #include "filter.h"
 
@@ -37,7 +38,9 @@ private:
   void image_callback(sensor_msgs::Image::ConstPtr img);
 
   void display_callback(void);
-  void display_connection_callback(void);
+  bool display_connection_callback(
+      ::red_ball_tracker::DisplayTracking::Request& request,
+      ::red_ball_tracker::DisplayTracking::Response& response);
 
   inline void set_teleop_msg(float alphax, float alphay, float distance);
 
@@ -48,9 +51,10 @@ private:
   image_transport::Subscriber _image_subscriber;
 
   ros::Publisher _tracking_publisher;
-  ros::Publisher _image_display_publisher;
 
-  std::string _image_topic_name, _tracking_topic_name, _display_topic_name;
+  ros::ServiceServer _display_tracking_server;
+
+  std::string _image_topic_name, _tracking_topic_name, _display_server_name;
 
   bool _need_display_img;
   bool _is_init;

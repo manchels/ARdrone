@@ -56,9 +56,9 @@
 
     <!-- Controller parameters. -->
     <param name="user_distance" type="double" value="0.8" />
-    <param name="dist_x_p"      type="double" value="0.23" />
-    <param name="dist_x_i"      type="double" value="0.5" />
-    <param name="dist_x_d"      type="double" value="0.6" />
+    <param name="dist_x_p"      type="double" value="0.15" />
+    <param name="dist_x_i"      type="double" value="0.05" />
+    <param name="dist_x_d"      type="double" value="0.26" />
     <param name="dist_z_p"      type="double" value="0.0" />
     <param name="theta_z_p"     type="double" value="4.5" />
   </node>

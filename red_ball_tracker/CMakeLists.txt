@@ -21,3 +21,4 @@ file(GLOB HEADER "src/*.h*")
 rosbuild_add_executable(red_ball_tracker ${SOURCE} ${HEADER})
 
 rosbuild_genmsg()
+rosbuild_gensrv()

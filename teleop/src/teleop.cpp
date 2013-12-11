@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include <ardrone_autonomy/LedAnim.h>
+
 
 #define STRINGIZE(args...) __STRING(args)
 
@@ -117,7 +119,9 @@ teleop::teleop(void)
 
   // ServiceClient.
   {
-    _led_client = nh.serviceClient<my_package::Foo>(_ardrone_led_service_name);
+    _led_client =
+        _public_node.serviceClient<ardrone_autonomy::LedAnim>(
+          _ardrone_led_service_name);
   }
 
   // Info.
@@ -128,7 +132,6 @@ teleop::teleop(void)
     ROS_INFO("Ardrone land topic       : %s", _ardrone_land_topic_name.c_str()      );
     ROS_INFO("Ardrone reset topic      : %s", _ardrone_reset_topic_name.c_str()     );
     ROS_INFO("Ardrone velocity topic   : %s", _ardrone_velocity_topic_name.c_str()  );
-    ROS_INFO("Ardrone navigation topic : %s", _ardrone_navigation_topic_name.c_str());
     ROS_INFO("Ball position topic      : %s", _ball_position_topic_name.c_str()     );
     ROS_INFO("Joy command topic        : %s", _joy_command_topic_name.c_str()       );
     ROS_INFO(
@@ -170,19 +173,32 @@ void teleop::spin_once(void)
     _control.linear.z *= 0.9f;
   }
 
+  // Update values.
+  {
+    _x_i += (_control.linear.x - _x_prev) * _rate_ms / 1000.f;
+    _x_d  = 1000.f * (_control.linear.x - _x_prev) / _rate_ms;
+
+    _x_prev = _control.linear.x;
+  }
+
   // Is ball detected or not ?
   if (_move && !_controlled_by_joy)
   {
     if (!_ball_detected && _ball_miss == 0)
     {
+      // Set ball as detected.
       _ball_detected = true;
+
+      // Reset PID values.
+      _x_p = _x_i = _x_d = _x_prev = 0.f;
+
       blink_led(BLINK_GREEN, 5, 1);
     }
 
     if (_ball_detected && _ball_miss > NUM_MISS_FOR_LOST)
     {
       _ball_detected = false;
-      bink_led(BLINK_ORANGE, 5, 1);
+      blink_led(BLINK_ORANGE, 5, 1);
     }
 
     // Update ball miss.
@@ -226,13 +242,6 @@ void teleop::ball_position_callback(
       _control.angular.y = 0;
       _control.angular.z = -(_coeff.theta_z_p * position->alphax);
 
-      // Update values.
-      {
-        _x_i += (_control.linear.x - _x_prev) * _rate_ms / 1000.f;
-        _x_d  = 1000.f * (_control.linear.x - _x_prev) / _rate_ms;
-
-        _x_prev = _control.linear.x;
-      }
 
       ROS_DEBUG("[ x_p, x_i, x_d ] = [ %10.5f, %10.5f, %10.5f ]",
                 _x_p, _x_i, _x_d);
@@ -242,9 +251,6 @@ void teleop::ball_position_callback(
       ROS_INFO("Taking off!");
       _ardrone_takeoff_publisher.publish(std_msgs::Empty());
       _is_flying = true;
-
-      // Reset PID values.
-      _x_p = _x_i = _x_d = _x_prev = 0.f;
     }
 
     // Reset the miss counter.
@@ -326,9 +332,9 @@ void teleop::joy_command_callback(sensor_msgs::Joy::ConstPtr joy)
 void teleop::blink_led(led_color color, float frequency, uint8_t duration)
 {
   ardrone_autonomy::LedAnim led_anim;
-  led_anim.type     = color;
-  led_anim.freq     = frequency;
-  led_anim.duration = duration;
+  led_anim.request.type     = color;
+  led_anim.request.freq     = frequency;
+  led_anim.request.duration = duration;
 
   if (!_led_client.call(led_anim))
   {

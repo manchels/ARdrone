@@ -19,7 +19,7 @@ The aim of the project is to provide a stack to control an
     <object width="480" height="385">
       <param
         name="movie"
-        value="http://www.youtube.com/v/SBqYZ3KdAUc&hl=en_US&fs=1&rel=0">
+        value="http://www.youtube.com/embed/X1WmbVnDgJQ">
       </param>
       <param
         name="allowFullScreen"
@@ -30,7 +30,7 @@ The aim of the project is to provide a stack to control an
         value="always">
       </param>
       <embed
-        src="http://www.youtube.com/v/SBqYZ3KdAUc&hl=en_US&fs=1&rel=0"
+        src="http://www.youtube.com/embed/X1WmbVnDgJQ"
         type="application/x-shockwave-flash"
         allowscriptaccess="always"
         allowfullscreen="true"

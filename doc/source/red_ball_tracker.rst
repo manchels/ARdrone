@@ -34,7 +34,7 @@ You can change the following parameters using :command:`rosparam`:
 .. tabularcolumns:: |p{2.5cm}|p{1.2cm}|L|
 
 ================ ====== ==============================================
-Name             Type   Description                            
+Name             Type   Description
 ================ ====== ==============================================
 min_hue          int    Min **hue** value for ball detection.
 ---------------- ------ ----------------------------------------------
@@ -85,12 +85,17 @@ Custom Messages
 
 We provide a custom message for the tracker:
 
-* red_ball_tracker/TrackerMsg:
-  
-  ========== ======== ======================================================
-  Attribute  Type       Description
-  ========== ======== ======================================================
-  alphax     float32    Angle between center and ball (horizontal component).
-  alphay     float32    Angle between center and ball (vertical component).
-  distance   float32    Distance to the ball.
-  ========== ======== ======================================================
+red_ball_tracker/TrackerMsg:
+
+.. tabularcolumns:: |p{2.5cm}|p{1.5cm}|L|
+
++-----------+---------+--------------------------------------------------------+
+| Attribute | Type    |  Description                                           |
++===========+=========+========================================================+
+| alphax    | float32 |  Angle between center and ball (horizontal component). |
++-----------+---------+--------------------------------------------------------+
+| alphay    | float32 |  Angle between center and ball (vertical component).   |
++-----------+---------+--------------------------------------------------------+
+| distance  | float32 |  Distance to the ball.                                 |
++-----------+---------+--------------------------------------------------------+
+
